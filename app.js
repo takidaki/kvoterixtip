@@ -31,13 +31,13 @@ function renderTasks() {
 
     if (task.acceptedBy) {
       const acceptedBy = document.createElement("span");
-      acceptedBy.innerText = ` Accepted by ${task.acceptedBy}`;
+      acceptedBy.innerText = ` Prihvatio ${task.acceptedBy}`;
       listItem.appendChild(acceptedBy);
     } else {
       const acceptButton = document.createElement("button");
-      acceptButton.innerText = "Accept";
+      acceptButton.innerText = "Prihvatam";
       acceptButton.addEventListener("click", () => {
-        const user = prompt("Enter your name:");
+        const user = prompt("Unesi ime:");
         acceptTask(index, user);
       });
       listItem.appendChild(acceptButton);
@@ -45,11 +45,11 @@ function renderTasks() {
 
     if (task.done) {
       const done = document.createElement("span");
-      done.innerText = " - Done";
+      done.innerText = " - uradjeno";
       listItem.appendChild(done);
     } else {
       const doneButton = document.createElement("button");
-      doneButton.innerText = " Done";
+      doneButton.innerText = " Uradjeno";
       doneButton.addEventListener("click", () => {
         markTaskDone(index);
       });
@@ -57,7 +57,7 @@ function renderTasks() {
     }
 
     const removeButton = document.createElement("button");
-    removeButton.innerText = " Remove";
+    removeButton.innerText = " Izbrisi";
     removeButton.addEventListener("click", () => {
       removeTask(index);
     });
@@ -65,4 +65,23 @@ function renderTasks() {
 
     taskList.appendChild(listItem);
   });
+
+  // Show browser notification
+  if (Notification.permission === 'granted') {
+    const notification = new Notification('Task napravljen', {
+      body: li.textContent,
+      icon: 'notification.png'
+    });
+  }
 }
+
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  createTask();
+});
+
+// Request permission for browser notifications
+if (Notification.permission !== 'granted') {
+  Notification.requestPermission();
+}
+
