@@ -1,112 +1,147 @@
-// Get DOM elements
-const taskInput = document.getElementById('task-input');
-const assigneeInput = document.getElementById('assignee-input');
-const addBtn = document.getElementById('add-btn');
-const taskList = document.getElementById('task-list');
+const socket = io();
 
-// Create WebSocket connection
-const socket = new WebSocket('ws://localhost:8080');
+// DOM elements
+const taskForm = document.querySelector('#task-form');
+const taskNameInput = document.querySelector('#task-name');
+const taskList = document.querySelector('#task-list');
+const clearCompletedButton = document.querySelector('#clear-completed');
 
-// Listen for WebSocket connection open
-socket.addEventListener('open', event => {
-  console.log('WebSocket connection established.');
+// local array of tasks
+let tasks = [];
+
+// handle new task event from server
+socket.on('new task', task => {
+	tasks.push(task);
+	renderTasks();
 });
 
-// Listen for WebSocket messages
-socket.addEventListener('message', event => {
-  const data = JSON.parse(event.data);
-  const action = data.action;
-  const task = data.task;
-
-  if (action === 'add') {
-    addTask(task);
-  } else if (action === 'accept') {
-    acceptTask(task);
-  } else if (action === 'delete') {
-    deleteTask(task);
-  }
+// handle remove task event from server
+socket.on('remove task', id => {
+	const index = tasks.findIndex(task => task.id === id);
+	if (index !== -1) {
+		tasks.splice(index, 1);
+		renderTasks();
+	}
 });
 
-// Listen for add button click
-addBtn.addEventListener('click', () => {
-  // Get task and assignee
-  const task = taskInput.value;
-  const assignee = assigneeInput.value;
-
-  // Send WebSocket message
-  const data = { action: 'add', task: { task, assignee } };
-  socket.send(JSON.stringify(data));
-
-  // Clear input fields
-  taskInput.value = '';
-  assigneeInput.value = '';
+// handle update task event from server
+socket.on('update task', updatedTask => {
+	const task = tasks.find(task => task.id === updatedTask.id);
+	if (task) {
+		task.name = updatedTask.name;
+		task.completed = updatedTask.completed;
+		task.assignedTo = updatedTask.assignedTo;
+		renderTasks();
+	}
 });
 
-// Listen for accept button click
-taskList.addEventListener('click', event => {
-  const target = event.target;
-
-  if (target.matches('.accept-btn')) {
-    const task = target.previousElementSibling.textContent.trim();
-    const assignee = prompt(`Who is accepting the task "${task}"?`);
-
-    if (assignee) {
-      // Send WebSocket message
-      const data = { action: 'accept', task: { task, assignee } };
-      socket.send(JSON.stringify(data));
-
-      // Update button text and disable
-      target.textContent = `Accepted by ${assignee}`;
-      target.disabled = true;
-    }
-  }
-});
-
-// Listen for delete button click
-taskList.addEventListener('click', event => {
-  const target = event.target;
-
-  if (target.matches('.delete-btn')) {
-    const li = target.closest('li');
-    const task = li.querySelector('span').textContent.trim();
-
-    // Send WebSocket message
-    const data = { action: 'delete', task: { task } };
-    socket.send(JSON.stringify(data));
-
-    // Remove task element from list
-    li.parentNode.removeChild(li);
-  }
-});
-
-// Add task to list
-function addTask(task) {
-  const li = document.createElement('li');
-  li.innerHTML = `<span>${task.task} - ${task.assignee}</span>
-                  <button class="accept-btn">Accept</button>
-                  <button class="delete-btn">Delete</button>`;
-
-  taskList.appendChild(li);
+// add new task to list
+function addTask(name) {
+	const task = {
+		id: Date.now(),
+		name: name,
+		completed: false,
+		assignedTo: null
+	};
+	tasks.push(task);
+	socket.emit('new task', task);
+	taskNameInput.value = '';
+	renderTasks();
 }
 
-// Accept task
-function acceptTask(task) {
-  const li = Array.from(taskList.children).find(li => {
-    const span = li.querySelector('span');
-    return span.textContent.trim() === task.task;
+// remove task from list
+function removeTask(id) {
+	const index = tasks.findIndex(task => task.id === id);
+	if (index !== -1) {
+		tasks.splice(index, 1);
+		socket.emit('remove task', id);
+		renderTasks();
+	}
+}
+
+// toggle task completion status
+function toggleTaskCompletion(id) {
+	const task = tasks.find(task => task.id === id);
+	if (task) {
+		task.completed = !task.completed;
+		socket.emit('update task', task);
+		renderTasks();
+	}
+}
+
+// assign task to user
+function assignTask(id, assignedTo) {
+	const task = tasks.find(task => task.id === id);
+	if (task) {
+		task.assignedTo = assignedTo;
+		socket.emit('update task', task);
+		renderTasks();
+	}
+}
+
+// render tasks on page
+function renderTasks() {
+	taskList.innerHTML = '';
+	tasks.forEach(task => {
+		const listItem = document.createElement('li');
+		listItem.classList.add('task');
+		if (task.completed) {
+			listItem.classList.add('completed');
+		}
+		listItem.innerHTML = `
+			<span class="task-name ${task.completed ? 'completed' : ''}">
+				${task.name}
+			</span>
+			<div class="task-actions">
+				<span class="assigned-to">${task.assignedTo ? `Assigned to ${task.assignedTo}` : 'Not assigned'}</span>
+				<button class="assign-task">Assign</button>
+				<button class="complete-task">${task.completed ? 'Undo' : 'Done'}</button>
+				<button class="remove-task">Delete</button>
+			</div>
+		`;
+		const assignButton = listItem.querySelector('.assign-task');
+		const completeButton = listItem.querySelector('.complete-task');
+		const removeButton = listItem.querySelector('.remove-task');
+		assignButton.addEventListener('click', () => {
+			const assignedTo = prompt('Assign task to:');
+			if (assignedTo) {
+				assignTask(task.id, assignedTo);
+			}
+		});
+		completeButton.addEventListener('click', () => {
+			toggleTaskCompletion(task.id);
+		});
+		removeButton.addEventListener('click', () => {
+			removeTask(task.id);
+		});
+
+    taskList.appendChild(listItem);
+});
+}
+
+// handle form submission
+taskForm.addEventListener('submit', event => {
+event.preventDefault();
+const taskName = taskNameInput.value.trim();
+if (taskName) {
+addTask(taskName);
+}
+});
+
+// clear completed tasks
+clearCompletedButton.addEventListener('click', () => {
+tasks = tasks.filter(task => !task.completed);
+renderTasks();
+});
+
+// initial render of tasks
+renderTasks();
+
+// request permission for notifications
+if (Notification.permission === 'granted') {
+  const notification = new Notification('Novi Task kreiran', {
+    body: 'novi task je kreiran',
+    icon: 'notification.png'
   });
-
-  const acceptBtn = li.querySelector('.accept-btn');
-  acceptBtn.textContent = `Accepted by ${task.assignee}`;
-  acceptBtn.disabled = true;
 }
 
-// Delete task
-function deleteTask(task) {
-  const li = Array.from(taskList.children).find(li => {
-    const span = li.querySelector('span');
-    return span.textContent.trim() === task.task;
-  });
-
-  li.parentNode.removeChild(li);
-}

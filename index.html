@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Task List</title>
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <div class="container">
-      <h1>Task List</h1>
-      <div class="form">
-        <input type="text" id="task-input" placeholder="Dodaj task">
-        <input type="text" id="assignee-input" placeholder="Ime">
-        <button id="add-btn">Dodaj</button>
-      </div>
-      <ul id="task-list"></ul>
-    </div>
-    <script src="app.js"></script>
-  </body>
+<head>
+	<title>Task List</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div class="container">
+		<h1>Task List</h1>
+		<form id="task-form">
+			<input type="text" id="task-name" placeholder="Enter task name">
+			<button type="submit">Add Task</button>
+		</form>
+		<ul class="tasks" id="task-list"></ul>
+		<button id="clear-completed">Clear Completed Tasks</button>
+	</div>
+	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
+	<script src="app.js"></script>
+</body>
 </html>
+
