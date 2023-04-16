@@ -1,87 +1,54 @@
-let tasks = [];
+// Get DOM elements
+const taskInput = document.getElementById('task-input');
+const assigneeInput = document.getElementById('assignee-input');
+const addBtn = document.getElementById('add-btn');
+const taskList = document.getElementById('task-list');
 
-function addTask() {
-  const taskName = document.getElementById("task-name").value;
-  tasks.push({name: taskName, acceptedBy: null, done: false});
-  renderTasks();
-}
+// Listen for add button click
+addBtn.addEventListener('click', () => {
+  // Get task and assignee
+  const task = taskInput.value;
+  const assignee = assigneeInput.value;
 
-function acceptTask(taskIndex, user) {
-  tasks[taskIndex].acceptedBy = user;
-  renderTasks();
-}
+  // Create task element
+  const li = document.createElement('li');
+  li.innerHTML = `<span>${task} - ${assignee}</span>
+                  <button class="accept-btn">Prihvati</button>
+                  <button class="delete-btn">Obriši</button>`;
 
-function markTaskDone(taskIndex) {
-  tasks[taskIndex].done = true;
-  renderTasks();
-}
+  // Add task element to list
+  taskList.appendChild(li);
 
-function removeTask(taskIndex) {
-  tasks.splice(taskIndex, 1);
-  renderTasks();
-}
-
-function renderTasks() {
-  const taskList = document.getElementById("task-list");
-  taskList.innerHTML = "";
-  tasks.forEach((task, index) => {
-    const listItem = document.createElement("li");
-    const taskText = document.createTextNode(task.name);
-    listItem.appendChild(taskText);
-
-    if (task.acceptedBy) {
-      const acceptedBy = document.createElement("span");
-      acceptedBy.innerText = ` Prihvatio ${task.acceptedBy}`;
-      listItem.appendChild(acceptedBy);
-    } else {
-      const acceptButton = document.createElement("button");
-      acceptButton.innerText = "Prihvatam";
-      acceptButton.addEventListener("click", () => {
-        const user = prompt("Unesi ime:");
-        acceptTask(index, user);
-      });
-      listItem.appendChild(acceptButton);
-    }
-
-    if (task.done) {
-      const done = document.createElement("span");
-      done.innerText = " - uradjeno";
-      listItem.appendChild(done);
-    } else {
-      const doneButton = document.createElement("button");
-      doneButton.innerText = " Uradjeno";
-      doneButton.addEventListener("click", () => {
-        markTaskDone(index);
-      });
-      listItem.appendChild(doneButton);
-    }
-
-    const removeButton = document.createElement("button");
-    removeButton.innerText = " Izbrisi";
-    removeButton.addEventListener("click", () => {
-      removeTask(index);
-    });
-    listItem.appendChild(removeButton);
-
-    taskList.appendChild(listItem);
-  });
-
-  // Show browser notification
-  if (Notification.permission === 'granted') {
-    const notification = new Notification('Task napravljen', {
-      body: li.textContent,
-      icon: 'notification.png'
+  // Send browser notification
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        new Notification(`Novi task kreiran- ${task}`, { icon: 'notification.png' });
+      }
     });
   }
-}
 
-form.addEventListener('submit', (event) => {
-  event.preventDefault();
-  createTask();
+  // Clear input fields
+  taskInput.value = '';
+  assigneeInput.value = '';
 });
 
-// Request permission for browser notifications
-if (Notification.permission !== 'granted') {
-  Notification.requestPermission();
-}
+// Listen for accept/delete button clicks using event delegation
+taskList.addEventListener('click', event => {
+  const target = event.target;
 
+  if (target.matches('.accept-btn')) {
+    const task = target.previousElementSibling.textContent.trim();
+    const assignee = prompt(`Ko prihvata task "${task}"?`);
+
+    if (assignee) {
+      target.textContent = `Prihvatio ${assignee}`;
+      target.disabled = true;
+    }
+  }
+
+  if (target.matches('.delete-btn')) {
+    const li = target.closest('li');
+    li.parentNode.removeChild(li);
+  }
+});

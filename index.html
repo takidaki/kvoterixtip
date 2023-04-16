@@ -1,22 +1,19 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
     <title>Task List</title>
-	<link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-	<div>
-		<h2>Task List</h2>
-		<form>
-		  <label for="task-name">Task:</label>
-		  <input type="text" id="task-name" placeholder="Enter task name">
-		  <button type="button" onclick="addTask()">Add Task</button>
-		</form>
-		<ul id="task-list">
-		</ul>
-	  </div>
-	<script src="app.js"></script>
-     
+    <div class="container">
+      <h1>Task List</h1>
+      <div class="form">
+        <input type="text" id="task-input" placeholder="Dodaj task">
+        <input type="text" id="assignee-input" placeholder="Ime">
+        <button id="add-btn">Dodaj</button>
+      </div>
+      <ul id="task-list"></ul>
+    </div>
+    <script src="app.js"></script>
   </body>
 </html>
